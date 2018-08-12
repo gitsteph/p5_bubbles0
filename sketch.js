@@ -3,6 +3,7 @@ var barriers;
 var bubbleManager;
 var mouseHeld;
 const startSize = 20;
+var maxFrequency = 800;
 
 
 function setup() {
@@ -26,19 +27,29 @@ function setup() {
 
 function createBubble() {
     var matterBubble = matter.makeBall(mouseX, mouseY, startSize);
+    
+    // instantiate oscillator
+    env = new p5.Env();
+    env.setADSR(.001, .2, .2, .5);
+    env.setRange(1.0, 0.0);
+
+    var osc = new p5.Oscillator();
+    osc.setType('sine');
+    osc.freq(maxFrequency); // freq should be proportional to radius; min: 200, max: 800
+    osc.amp(env);
+    osc.start(); // will want to clean up post-pop
+
     var newBubble = {
         'r': random(255),
         'g': random(255),
         'b': random(255),
         't': random(100, 200),
         'diameter': startSize,
-        'matterBubble': matterBubble
+        'matterBubble': matterBubble,
+        'osc': osc,
+        'env': env
     };
     bubbleManager.push(newBubble);
-}
-
-function popBubble(targetBubble) {
-
 }
 
 function draw() {
@@ -50,11 +61,14 @@ function draw() {
     cursor(HAND);
     for (var i = 0; i < bubbleManager.length; i++) {
         fill(bubbleManager[i].r, bubbleManager[i].g, bubbleManager[i].b, bubbleManager[i].t);
+        stroke(bubbleManager[i].r + 20, bubbleManager[i].g + 20, bubbleManager[i].b + 20);
         if (mouseHeld == true && i == (bubbleManager.length - 1)) {
             var x = bubbleManager[i].matterBubble.getPositionX();
             var y = bubbleManager[i].matterBubble.getPositionY();
             matter.forget(bubbleManager[i].matterBubble);
             bubbleManager[i].diameter += 2;
+            var frequencyExponent = 10-(bubbleManager[i].diameter-startSize)*.01;
+            bubbleManager[i].osc.freq(Math.pow(2, Math.max(3, Math.min(10, frequencyExponent))));
             bubbleManager[i].matterBubble = matter.makeBall(x, y, bubbleManager[i].diameter);
         }
         ellipse(
@@ -64,17 +78,37 @@ function draw() {
             bubbleManager[i].matterBubble.getDiameter()
         )
     }
-    if (bubbleManager.length > 10) {
-        fill(253,95,0, 200);
-        stroke(20);
-        textSize(50);
+    textSize(50);
+    if (bubbleManager.length <= 10) {
+        fill(253, 95, 0, 200);
+        stroke(253 - 50, 95 - 50, 0 - 50);
+        text("make some bubbles!", 20, 50);
+    } else {
+        fill(249, 9, 178, 200);
+        stroke(249 - 50, 9 - 50, 178 - 50);
         text("poke some existing bubbles!", 20, height - 20);
     }
 }
 
 function mousePressed() {
-    createBubble();
-    mouseHeld = true;
+    var popIt = false;
+    var bubbleToPop;
+    for (var i = 0; i < bubbleManager.length; i++) {
+        var d = dist(mouseX, mouseY, bubbleManager[i].matterBubble.getPositionX(), bubbleManager[i].matterBubble.getPositionY());
+        if (d < (bubbleManager[i].diameter / 2)) {
+            popIt = true;
+            bubbleToPop = i;
+            break;
+        }
+    }
+    if (popIt == true) {
+        bubbleManager[bubbleToPop].env.play();
+        matter.forget(bubbleManager[bubbleToPop].matterBubble);
+        bubbleManager.splice(bubbleToPop, 1);
+    } else {
+        createBubble();
+        mouseHeld = true;
+    }
 }
 
 function mouseReleased() {
@@ -82,4 +116,3 @@ function mouseReleased() {
 }
 
 // TODO: create sense of 3D depth, beyond xy collisions
-// TODO: implement bubble popping + sound

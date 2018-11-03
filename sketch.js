@@ -79,14 +79,15 @@ function draw() {
         )
     }
     textSize(50);
-    if (bubbleManager.length <= 10) {
-        fill(253, 95, 0, 200);
-        stroke(253 - 50, 95 - 50, 0 - 50);
-        text("make some bubbles!", 20, 50);
-    } else {
+    fill(253, 95, 0, 200);
+    stroke(253 - 50, 95 - 50, 0 - 50);
+    text("make some bubbles!", 20, 50);
+    if (bubbleManager.length > 2) {
         fill(249, 9, 178, 200);
         stroke(249 - 50, 9 - 50, 178 - 50);
-        text("poke some existing bubbles!", 20, height - 20);
+        text("poke some existing bubbles!", 20, height - 50);
+        textSize(25);
+        text("(+ turn up the sound)", 20, height - 20);
     }
 }
 
